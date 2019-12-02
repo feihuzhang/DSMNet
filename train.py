@@ -43,10 +43,10 @@ parser.add_argument('--model', type=str, default='GANet_deep', help="model to tr
 opt = parser.parse_args()
 
 print(opt)
-if opt.model == 'GANet11':
-    from models.GANet11 import GANet
-elif opt.model == 'GANet_deep':
-    from models.GANet_deep import GANet
+if opt.model == 'DSMNet2x2':
+    from models.DSMNet2x2 import DSMNet
+elif opt.model == 'DSMNet':
+    from models.DSMNet import DSMNet
 else:
     raise Exception("No suitable model found ...")
     
@@ -66,7 +66,7 @@ training_data_loader = DataLoader(dataset=train_set, num_workers=opt.threads, ba
 testing_data_loader = DataLoader(dataset=test_set, num_workers=opt.threads, batch_size=opt.testBatchSize, shuffle=False)
 
 print('===> Building model')
-model = GANet(opt.max_disp)
+model = DSMNet(opt.max_disp)
 
 criterion = MyLoss2(thresh=3, alpha=2)
 if cuda:
@@ -184,24 +184,13 @@ if __name__ == '__main__':
         adjust_learning_rate(optimizer, epoch)
         train(epoch)
         is_best = False
-#        loss=val()
-#        if loss < error:
-#            error=loss
-#            is_best = True
-        if opt.kitti or opt.kitti2015:
-            if epoch%50 == 0 and epoch >= 300:
-                save_checkpoint(opt.save_path, epoch,{
-                        'epoch': epoch,
-                        'state_dict': model.state_dict(),
-                        'optimizer' : optimizer.state_dict(),
-                    }, is_best)
-        else:
-            if epoch>=8:
-                save_checkpoint(opt.save_path, epoch,{
-                        'epoch': epoch,
-                        'state_dict': model.state_dict(),
-                        'optimizer' : optimizer.state_dict(),
-                    }, is_best)
+
+        if epoch>=8:
+            save_checkpoint(opt.save_path, epoch,{
+                    'epoch': epoch,
+                    'state_dict': model.state_dict(),
+                    'optimizer' : optimizer.state_dict(),
+                }, is_best)
 
 
     save_checkpoint(opt.save_path, opt.nEpochs,{
