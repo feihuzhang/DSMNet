@@ -9,7 +9,7 @@ Carla Dataset:
 
 ## Oral Presentation 
 
-[Slides](http://www.feihuzhang.com/DSMNet/DSMNet.pptx), [Video](https://youtu.be/jsLgpy5qc0s)
+[Slides](http://www.feihuzhang.com/DSMNet/DSMNet.pdf), [Video](https://youtu.be/jsLgpy5qc0s)
 
 
 ## Building Requirements:
