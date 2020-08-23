@@ -16,9 +16,13 @@ import torch.backends.cudnn as cudnn
 import torch.optim as optim
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
-#from models.GANet_deep import GANet
+#from models.Pool2x2 import GANet
+from models.DSMNet2x2 import DSMNet
 from dataloader.data import get_test_set
+from pylab import *
+import matplotlib.pyplot as plt
 import numpy as np
+import torch.nn.functional as F
 
 # Training settings
 parser = argparse.ArgumentParser(description='PyTorch GANet Example')
@@ -27,24 +31,16 @@ parser.add_argument('--crop_width', type=int, required=True, help="crop width")
 parser.add_argument('--max_disp', type=int, default=192, help="max disp")
 parser.add_argument('--resume', type=str, default='', help="resume from saved model")
 parser.add_argument('--cuda', type=bool, default=True, help='use cuda?')
-parser.add_argument('--kitti', type=int, default=0, help='kitti dataset? Default=False')
-parser.add_argument('--kitti2015', type=int, default=0, help='kitti 2015? Default=False')
+parser.add_argument('--dataset', type=str, default='kitti2015_train.list', help='dataset?')
 parser.add_argument('--data_path', type=str, required=True, help="data root")
 parser.add_argument('--test_list', type=str, required=True, help="training list")
 parser.add_argument('--save_path', type=str, default='./result/', help="location to save result")
-parser.add_argument('--model', type=str, default='GANet_deep', help="model to train")
 
 opt = parser.parse_args()
 
 
 print(opt)
-if opt.model == 'GANet11':
-    from models.GANet11 import GANet
-elif opt.model == 'GANet_deep':
-    from models.GANet_deep import GANet
-else:
-    raise Exception("No suitable model found ...")
-    
+
 cuda = opt.cuda
 #cuda = True
 if cuda and not torch.cuda.is_available():
@@ -57,7 +53,9 @@ if cuda and not torch.cuda.is_available():
 
 
 print('===> Building model')
-model = GANet(opt.max_disp)
+model = DSMNet(opt.max_disp)
+print('Number of model parameters: {}'.format(sum([p.data.nelement() for p in model.parameters()])))
+#quit()
 
 if cuda:
     model = torch.nn.DataParallel(model).cuda()
@@ -95,18 +93,30 @@ def load_data(leftname, rightname):
     size = np.shape(left)
     height = size[0]
     width = size[1]
+#    opt.crop_height = int(height/48.)*48
+#    opt.crop_width = int(width/48.)*48
     temp_data = np.zeros([6, height, width], 'float32')
     left = np.asarray(left)
     right = np.asarray(right)
-    r = left[:, :, 0]
-    g = left[:, :, 1]
-    b = left[:, :, 2]
+    if len(size)>2:
+        r = left[:, :, 0]
+        g = left[:, :, 1]
+        b = left[:, :, 2]
+    else:
+        r = left[:, :]
+        g = left[:, :]
+        b = left[:, :]
     temp_data[0, :, :] = (r - np.mean(r[:])) / np.std(r[:])
     temp_data[1, :, :] = (g - np.mean(g[:])) / np.std(g[:])
     temp_data[2, :, :] = (b - np.mean(b[:])) / np.std(b[:])
-    r = right[:, :, 0]
-    g = right[:, :, 1]
-    b = right[:, :, 2]	
+    if len(size)>2:
+        r = right[:, :, 0]
+        g = right[:, :, 1]
+        b = right[:, :, 2]	
+    else:
+        r = right[:, :]
+        g = right[:, :]
+        b = right[:, :]	
     #r,g,b,_ = right.split()
     temp_data[3, :, :] = (r - np.mean(r[:])) / np.std(r[:])
     temp_data[4, :, :] = (g - np.mean(g[:])) / np.std(g[:])
@@ -123,11 +133,34 @@ def test(leftname, rightname, savename):
     input2 = Variable(input2, requires_grad = False)
 
     model.eval()
+#    model.train()
     if cuda:
         input1 = input1.cuda()
         input2 = input2.cuda()
     with torch.no_grad():
-        prediction = model(input1, input2)
+
+        temp = model(input1, input2)
+        temp = torch.norm(temp, p=2, dim=1)
+        temp = temp.cpu()
+        temp = temp.detach().numpy()
+        if height <= opt.crop_height and width <= opt.crop_width:
+            temp = temp[0, opt.crop_height - height: opt.crop_height, opt.crop_width - width: opt.crop_width]
+        else:
+            temp = temp[0, :, :]
+        return temp
+        data = temp
+        m1 = np.min(data[:])
+        m2 = np.max(data[:])
+        m1 = 1
+        m2 = 8
+        print(m1, m2)
+        cmap = plt.cm.jet
+        norm = plt.Normalize(vmin=m1+(m2-m1)/8000., vmax=m2+(m2-m1)/600.)
+#                norm = plt.Normalize(vmin=m1, vmax=m2-(m2-m1)/3.)
+
+        image = cmap(norm(data))
+        skimage.io.imsave(savename, (image * 255).astype('uint8'))
+        return temp
      
     temp = prediction.cpu()
     temp = temp.detach().numpy()
@@ -143,15 +176,34 @@ if __name__ == "__main__":
     file_list = opt.test_list
     f = open(file_list, 'r')
     filelist = f.readlines()
-    for index in range(len(filelist)):
+    for index in range(0,len(filelist)):
         current_file = filelist[index]
-        if opt.kitti2015:
+        if opt.dataset == 'kitti2015':
             leftname = file_path + 'image_2/' + current_file[0: len(current_file) - 1]
             rightname = file_path + 'image_3/' + current_file[0: len(current_file) - 1]
-        if opt.kitti:
+            savename = opt.save_path + current_file[:,-1]
+        if opt.dataset == 'kitti':
             leftname = file_path + 'colored_0/' + current_file[0: len(current_file) - 1]
             rightname = file_path + 'colored_1/' + current_file[0: len(current_file) - 1]
-
-        savename = opt.save_path + current_file[0: len(current_file) - 1]
+            savename = opt.save_path + current_file[:,-1]
+        if opt.dataset == 'middlebury' 
+            current_file = current_file.strip().split(' ')
+            leftname = file_path + 'rgb/' + current_file[0] #current_file[0: len(current_file) - 1]
+            rightname = file_path + 'rgb/' + current_file[1] # right_file[0: len(current_file) - 1]
+            savename = opt.save_path + str(index) + '.png'
+        if opt.dataset=='cityscapes:'
+            leftname = file_path + 'left/' + current_file[0: len(current_file) - 1]
+            rightname = file_path + 'right/' + current_file[0: len(current_file) - 16] + 'rightImg8bit.png'
+            savename = opt.save_path + 'cityscape' + str(index) + '.png'
+        if opt.dataset == 'eth3d':
+            leftname = file_path + current_file[0: len(current_file) - 1]
+            rightname = file_path + current_file[0: len(current_file) - 6] + '1.png'
+            savename = file_path + current_file[0: len(current_file) - 8] +'eth3d.png'
+            savename = opt.save_path + 'eth3d' + str(index) + '-2.png'
+        if opt.dataset == 'sceneflow':
+            leftname = file_path  + current_file[0: len(current_file) - 1]
+            rightname = file_path + current_file[0: len(current_file) - 14] + 'right/' + current_file[len(current_file) - 9:len(current_file) - 1]
+            savename = opt.save_path + current_file[0: len(current_file) - 1]
+            savename = opt.save_path + 'sceneflow' + str(index) + '.png'
         test(leftname, rightname, savename)
-
+        

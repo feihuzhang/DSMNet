@@ -13,12 +13,13 @@ import torch.backends.cudnn as cudnn
 import torch.optim as optim
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
-#from models.GANet_deep import GANet
+from models.DSMNet import DSMNet
+from models.DSMNet2x2 import DSMNet
 import torch.nn.functional as F
 from dataloader.data import get_training_set, get_test_set
 
 # Training settings
-parser = argparse.ArgumentParser(description='PyTorch GANet Example')
+parser = argparse.ArgumentParser(description='PyTorch GC-Net Example')
 parser.add_argument('--crop_height', type=int, required=True, help="crop height")
 parser.add_argument('--max_disp', type=int, default=192, help="max disp")
 parser.add_argument('--crop_width', type=int, required=True, help="crop width")
@@ -34,22 +35,15 @@ parser.add_argument('--seed', type=int, default=123, help='random seed to use. D
 parser.add_argument('--shift', type=int, default=0, help='random shift of left image. Default=0')
 parser.add_argument('--kitti', type=int, default=0, help='kitti dataset? Default=False')
 parser.add_argument('--kitti2015', type=int, default=0, help='kitti 2015? Default=False')
-parser.add_argument('--data_path', type=str, default='/ssd1/zhangfeihu/data/stereo/', help="data root")
 parser.add_argument('--training_list', type=str, default='./lists/sceneflow_train.list', help="training list")
-parser.add_argument('--val_list', type=str, default='./lists/sceneflow_test_select.list', help="validation list")
+parser.add_argument('--training_list', type=str, default='./lists/kitti2015_train.list', help="training list")
+parser.add_argument('--val_list', type=str, default='./lists/kitti2015_train.list', help="validation list")
 parser.add_argument('--save_path', type=str, default='./checkpoint/', help="location to save models")
-parser.add_argument('--model', type=str, default='GANet_deep', help="model to train")
 
 opt = parser.parse_args()
 
 print(opt)
-if opt.model == 'DSMNet2x2':
-    from models.DSMNet2x2 import DSMNet
-elif opt.model == 'DSMNet':
-    from models.DSMNet import DSMNet
-else:
-    raise Exception("No suitable model found ...")
-    
+
 cuda = opt.cuda
 #cuda = True
 if cuda and not torch.cuda.is_available():
@@ -61,12 +55,12 @@ if cuda:
 
 print('===> Loading datasets')
 train_set = get_training_set(opt.data_path, opt.training_list, [opt.crop_height, opt.crop_width], opt.left_right, opt.kitti, opt.kitti2015, opt.shift)
-test_set = get_test_set(opt.data_path, opt.val_list, [576,960], opt.left_right, opt.kitti, opt.kitti2015)
+test_set = get_test_set(opt.data_path, opt.val_list, [384,1248], opt.left_right, opt.kitti, opt.kitti2015)
 training_data_loader = DataLoader(dataset=train_set, num_workers=opt.threads, batch_size=opt.batchSize, shuffle=True, drop_last=True)
 testing_data_loader = DataLoader(dataset=test_set, num_workers=opt.threads, batch_size=opt.testBatchSize, shuffle=False)
 
 print('===> Building model')
-model = DSMNet(opt.max_disp)
+model = DSMNet()
 
 criterion = MyLoss2(thresh=3, alpha=2)
 if cuda:
@@ -80,6 +74,9 @@ if opt.resume:
 #        optimizer.load_state_dict(checkpoint['optimizer'])
     else:
         print("=> no checkpoint found at '{}'".format(opt.resume))
+
+
+
 
 
 def train(epoch):
@@ -101,24 +98,17 @@ def train(epoch):
         mask.detach_()
         valid = target[mask].size()[0]
         if valid > 0:
+
             optimizer.zero_grad()
-            
-            if opt.model == 'GANet11':
-                disp1, disp2 = model(input1, input2)
-                disp0 = (disp1 + disp2)/2.
-                if opt.kitti or opt.kitti2015:
-                    loss = 0.4 * F.smooth_l1_loss(disp1[mask], target[mask], reduction='mean') + 1.2 * criterion(disp2[mask], target[mask])
-                else:
-                    loss = 0.4 * F.smooth_l1_loss(disp1[mask], target[mask], reduction='mean') + 1.2 * F.smooth_l1_loss(disp2[mask], target[mask], reduction='mean')
-            elif opt.model == 'GANet_deep':
-                disp0, disp1, disp2 = model(input1, input2)
-                if opt.kitti or opt.kitti2015:
-                    loss = 0.2 * F.smooth_l1_loss(disp0[mask], target[mask], reduction='mean') + 0.6 * F.smooth_l1_loss(disp1[mask], target[mask], reduction='mean') +  criterion(disp2[mask], target[mask])
-                else:
-                    loss = 0.2 * F.smooth_l1_loss(disp0[mask], target[mask], reduction='mean') + 0.6 * F.smooth_l1_loss(disp1[mask], target[mask], reduction='mean') +  F.smooth_l1_loss(disp2[mask], target[mask], reduction='mean')
+            disp0, disp1, disp2=model(input1,input2)
+#            disp0, disp1, disp2 = chp.checkpoint(model, input1, input2)
+
+            if opt.kitti or opt.kitti2015:
+                loss = 0.2 * F.smooth_l1_loss(disp0[mask], target[mask], reduction='mean') + 0.6 * F.smooth_l1_loss(disp1[mask], target[mask], reduction='mean') +  criterion(disp2[mask], target[mask])
+#                loss = 0.2 * F.smooth_l1_loss(disp0[mask], target[mask], reduction='mean') + 0.6 * F.smooth_l1_loss(disp1[mask], target[mask], reduction='mean') +  F.smooth_l1_loss(disp2[mask], target[mask], reduction='mean')
             else:
-                raise Exception("No suitable model found ...")
-                
+                loss = 0.2 * F.smooth_l1_loss(disp0[mask], target[mask], reduction='mean') + 0.6 * F.smooth_l1_loss(disp1[mask], target[mask], reduction='mean') +  F.smooth_l1_loss(disp2[mask], target[mask], reduction='mean')
+#            loss = 0.2 * criterion(disp0[mask], target[mask]) + 0.6 * criterion(disp1[mask], target[mask]) + criterion(disp2[mask], target[mask])
             loss.backward()
             optimizer.step()
             error0 = torch.mean(torch.abs(disp0[mask] - target[mask])) 
@@ -136,8 +126,10 @@ def train(epoch):
     print("===> Epoch {} Complete: Avg. Loss: {:.4f}, Avg. Error: ({:.4f} {:.4f} {:.4f})".format(epoch, epoch_loss / valid_iteration,epoch_error0/valid_iteration,epoch_error1/valid_iteration,epoch_error2/valid_iteration))
 
 def val():
-    epoch_error2 = 0
-
+    epoch_loss1 = 0
+    epoch_loss2 = 0
+    epoch_loss3 = 0
+    epoch_loss4 = 0
     valid_iteration = 0
     model.eval()
     for iteration, batch in enumerate(testing_data_loader):
@@ -146,20 +138,26 @@ def val():
             input1 = input1.cuda()
             input2 = input2.cuda()
             target = target.cuda()
-        target = torch.squeeze(target, 1)
+        target=torch.squeeze(target,1)
         mask = target < opt.max_disp
         mask.detach_()
-        valid = target[mask].size()[0]
+        valid=target[mask].size()[0]
         if valid>0:
             with torch.no_grad():
-                disp2 = model(input1,input2)
+                disp0, disp1, disp2 = model(input1,input2)
+                error0 = torch.mean(torch.abs(disp0[mask] - target[mask])) 
+                error1 = torch.mean(torch.abs(disp1[mask] - target[mask]))
                 error2 = torch.mean(torch.abs(disp2[mask] - target[mask]))
-                valid_iteration += 1
-                epoch_error2 += error2.item()      
-                print("===> Test({}/{}): Error: ({:.4f})".format(iteration, len(testing_data_loader), error2.item()))
 
-    print("===> Test: Avg. Error: ({:.4f})".format(epoch_error2 / valid_iteration))
-    return epoch_error2 / valid_iteration
+                epoch_loss += loss.item()
+                valid_iteration += 1
+                epoch_error0 += error0.item()
+                epoch_error1 += error1.item()
+                epoch_error2 += error2.item()      
+                print("===> Test({}/{}): Error: ({:.4f} {:.4f} {:.4f})".format(iteration, len(testing_data_loader), error0.item(), error1.item(), error2.item()))
+
+    print("===> Test: Avg. Error: ({:.4f} {:.4f} {:.4f})".format(epoch_error0/valid_iteration, epoch_error1/valid_iteration, epoch_error2/valid_iteration))
+    return epoch_error2/valid_iteration
 
 def save_checkpoint(save_path, epoch,state, is_best):
     filename = save_path + "_epoch_{}.pth".format(epoch)
@@ -169,7 +167,7 @@ def save_checkpoint(save_path, epoch,state, is_best):
     print("Checkpoint saved to {}".format(filename))
 
 def adjust_learning_rate(optimizer, epoch):
-    if epoch <= 400:
+    if epoch <= 100:
        lr = opt.lr
     else:
        lr = opt.lr*0.1
@@ -184,14 +182,15 @@ if __name__ == '__main__':
         adjust_learning_rate(optimizer, epoch)
         train(epoch)
         is_best = False
-
-        if epoch>=8:
+        loss=val()
+        if loss < error:
+            error=loss
+            is_best = True
             save_checkpoint(opt.save_path, epoch,{
                     'epoch': epoch,
                     'state_dict': model.state_dict(),
                     'optimizer' : optimizer.state_dict(),
                 }, is_best)
-
 
     save_checkpoint(opt.save_path, opt.nEpochs,{
             'epoch': opt.nEpochs,
