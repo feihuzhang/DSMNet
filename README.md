@@ -3,13 +3,14 @@
 [Domain-invariant Stereo Matching Newtorks](https://arxiv.org/pdf/1911.13287.pdf)
 
 
-# DATASET
-Carla Dataset:
-
+<img align="center" src="http://www.feihuzhang.com/illustration/cityscapes.jif">
 
 ## Oral Presentation 
 
 [Slides](http://www.feihuzhang.com/DSMNet/DSMNet.pdf), [Video](https://youtu.be/jsLgpy5qc0s)
+
+## DATASET
+Carla Dataset:
 
 
 ## Building Requirements:
