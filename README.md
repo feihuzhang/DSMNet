@@ -2,15 +2,17 @@
 
 [Domain-invariant Stereo Matching Newtorks](https://arxiv.org/pdf/1911.13287.pdf)
 
-
-<img align="center" src="http://www.feihuzhang.com/illustration/cityscape.jif">
-
 ## Oral Presentation 
 
 [Slides](http://www.feihuzhang.com/DSMNet/DSMNet.pdf), [Video](https://youtu.be/jsLgpy5qc0s)
 
+## Great Generalization Abilities:
+DSMNet has great generalization abilities on other datasets/scenes. Models are trained only with synthetic data:
+<img src="illustration/cityscape.gif" width="800" />
+
+
 ## DATASET
-Carla Dataset:
+Carla Dataset: updating ...
 
 
 ## Building Requirements:
@@ -67,10 +69,6 @@ Step 3: revise parameter settings and run "train.sh" and "predict.sh" for traini
 ## Pretrained models:
 
 Updating ...
-
-
-## Great Generalization Abilities:
-DSMNet has great generalization abilities on other datasets/scenes.
 
 
 
