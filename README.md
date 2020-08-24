@@ -3,7 +3,7 @@
 [Domain-invariant Stereo Matching Newtorks](https://arxiv.org/pdf/1911.13287.pdf)
 
 
-<img align="center" src="http://www.feihuzhang.com/illustration/cityscapes.jif">
+<img align="center" src="http://www.feihuzhang.com/illustration/cityscape.jif">
 
 ## Oral Presentation 
 
