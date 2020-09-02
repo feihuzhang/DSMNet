@@ -8,6 +8,7 @@
 
 ## Great Generalization Abilities:
 DSMNet has great generalization abilities on other datasets/scenes. Models are trained only with synthetic data:
+
 <img src="illustration/cityscapes.gif" width="720" />
 
 
