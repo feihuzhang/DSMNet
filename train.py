@@ -36,7 +36,7 @@ parser.add_argument('--shift', type=int, default=0, help='random shift of left i
 parser.add_argument('--kitti', type=int, default=0, help='kitti dataset? Default=False')
 parser.add_argument('--kitti2015', type=int, default=0, help='kitti 2015? Default=False')
 parser.add_argument('--training_list', type=str, default='./lists/sceneflow_train.list', help="training list")
-parser.add_argument('--training_list', type=str, default='./lists/kitti2015_train.list', help="training list")
+parser.add_argument('--data_path', type=str, default='/media/feihu/Storage/stereo/data_scene_flow/', help="data root")
 parser.add_argument('--val_list', type=str, default='./lists/kitti2015_train.list', help="validation list")
 parser.add_argument('--save_path', type=str, default='./checkpoint/', help="location to save models")
 
@@ -126,10 +126,10 @@ def train(epoch):
     print("===> Epoch {} Complete: Avg. Loss: {:.4f}, Avg. Error: ({:.4f} {:.4f} {:.4f})".format(epoch, epoch_loss / valid_iteration,epoch_error0/valid_iteration,epoch_error1/valid_iteration,epoch_error2/valid_iteration))
 
 def val():
-    epoch_loss1 = 0
-    epoch_loss2 = 0
-    epoch_loss3 = 0
-    epoch_loss4 = 0
+    epoch_loss = 0
+    epoch_error0 = 0
+    epoch_error1 = 0
+    epoch_error2 = 0
     valid_iteration = 0
     model.eval()
     for iteration, batch in enumerate(testing_data_loader):
