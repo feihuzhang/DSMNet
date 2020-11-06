@@ -126,7 +126,6 @@ def train(epoch):
     print("===> Epoch {} Complete: Avg. Loss: {:.4f}, Avg. Error: ({:.4f} {:.4f} {:.4f})".format(epoch, epoch_loss / valid_iteration,epoch_error0/valid_iteration,epoch_error1/valid_iteration,epoch_error2/valid_iteration))
 
 def val():
-    epoch_loss = 0
     epoch_error0 = 0
     epoch_error1 = 0
     epoch_error2 = 0
@@ -148,8 +147,6 @@ def val():
                 error0 = torch.mean(torch.abs(disp0[mask] - target[mask])) 
                 error1 = torch.mean(torch.abs(disp1[mask] - target[mask]))
                 error2 = torch.mean(torch.abs(disp2[mask] - target[mask]))
-
-                epoch_loss += loss.item()
                 valid_iteration += 1
                 epoch_error0 += error0.item()
                 epoch_error1 += error1.item()
@@ -182,9 +179,9 @@ if __name__ == '__main__':
         adjust_learning_rate(optimizer, epoch)
         train(epoch)
         is_best = False
-        loss=val()
+        loss = val()
         if loss < error:
-            error=loss
+            error = loss
             is_best = True
             save_checkpoint(opt.save_path, epoch,{
                     'epoch': epoch,
