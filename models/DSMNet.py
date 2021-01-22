@@ -26,7 +26,7 @@ class DomainNorm(nn.Module):
     def forward(self, x):
         x = self.normalize(x)
         if self.l2:
-            return F.normalize(x, p=2, dim=1)
+            x = F.normalize(x, p=2, dim=1)
         return x * self.weight + self.bias
 
 class DomainNorm2(nn.Module):
