@@ -5,16 +5,17 @@ from libs.GANet.modules.GANet import DisparityRegression, GetCostVolume
 from libs.GANet.modules.GANet import MyNormalize
 from libs.GANet.modules.GANet import SGA
 from libs.GANet.modules.GANet import LGA, LGA2, LGA3
-from libs.sync_bn.modules.sync_bn import BatchNorm2d, BatchNorm3d
+#from libs.sync_bn.modules.sync_bn import BatchNorm2d, BatchNorm3d
 from libs.GANet.modules.GANet import NLFIter
 from libs.GANet.modules.GANet import GetWeights, GetFilters
+#from apex.parallel import SyncBatchNorm as BatchNorm
 
 import torch.nn.functional as F
 from torch.autograd import Variable
 import numpy as np
 #from models.feature2 import feature_extraction
 
-class DomainNorm(nn.Module):
+class DomainNorm2(nn.Module):
     def __init__(self, channel, l2=True):
         super(DomainNorm, self).__init__()
         self.normalize = nn.InstanceNorm2d(num_features=channel, affine=False)
@@ -29,14 +30,14 @@ class DomainNorm(nn.Module):
             x = F.normalize(x, p=2, dim=1)
         return x * self.weight + self.bias
 
-class DomainNorm2(nn.Module):
+class DomainNorm(nn.Module):
     def __init__(self, channel, l2=True):
         super(DomainNorm, self).__init__()
         self.normalize = nn.InstanceNorm2d(num_features=channel, affine=True)
         self.l2 = l2
     def forward(self, x):
         if self.l2:
-            return F.normalize(x, p=2, dim=1)
+            x = F.normalize(x, p=2, dim=1)
         x = self.normalize(x)
         return x
 
@@ -54,7 +55,7 @@ class BasicConv(nn.Module):
                 self.conv = nn.ConvTranspose3d(in_channels, out_channels, bias=False, **kwargs)
             else:
                 self.conv = nn.Conv3d(in_channels, out_channels, bias=False, **kwargs)
-            self.bn = BatchNorm3d(out_channels)
+            self.bn = nn.BatchNorm3d(out_channels)
         else:
             if deconv:
                 self.conv = nn.ConvTranspose2d(in_channels, out_channels, bias=False, **kwargs)
@@ -423,12 +424,12 @@ class SGABlock(nn.Module):
         super(SGABlock, self).__init__()
         self.refine = refine
         if self.refine:
-            self.bn_relu = nn.Sequential(BatchNorm3d(channels),
+            self.bn_relu = nn.Sequential(nn.BatchNorm3d(channels),
                                          nn.ReLU(inplace=True))
             self.conv_refine = BasicConv(channels, channels, is_3d=True, kernel_size=3, padding=1, relu=False)
 #            self.conv_refine1 = BasicConv(8, 8, is_3d=True, kernel_size=1, padding=1)
         else:
-            self.bn = BatchNorm3d(channels)
+            self.bn = nn.BatchNorm3d(channels)
         self.SGA=SGA()
         self.relu = nn.ReLU(inplace=True)
     def forward(self, x, g):
@@ -478,7 +479,7 @@ class CostAggregation(nn.Module):
         self.deconv1b = Conv2x(48, 32, deconv=True, is_3d=True, relu=False)
         self.deconv2b = Conv2x(64, 48, deconv=True, is_3d=True)
 #        self.deconv3b = Conv2x(96, 64, deconv=True, is_3d=True)
-        self.deconv0b = Conv2x(8, 8, deconv=True, is_3d=True)
+#        self.deconv0b = Conv2x(8, 8, deconv=True, is_3d=True)
         
 
         self.disp0 = Disp(self.maxdisp)
@@ -571,15 +572,29 @@ class DSMNet(nn.Module):
         self.feature = Feature()
         self.guidance = Guidance()
         self.cost_agg = CostAggregation(self.maxdisp)
-        self.cv = GetCostVolume(int(self.maxdisp/3))
+        self.cv = GetCostVolume(int(self.maxdisp/4))
         
         for m in self.modules():
             if isinstance(m, (nn.Conv2d, nn.Conv3d)):
                 nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
 #            elif isinstance(m, (nn.InstanceNorm2d, BatchNorm3d)):
-            elif isinstance(m, (BatchNorm2d, BatchNorm3d)):
+            elif isinstance(m, (nn.BatchNorm2d, nn.BatchNorm3d)):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
+    def freeze_bn(self):
+        for m in self.modules():
+            if isinstance(m, nn.BatchNorm2d):
+                m.eval()
+            if isinstance(m, nn.BatchNorm3d):
+                m.eval()
+            if isinstance(m, nn.SyncBatchNorm):
+                m.eval()
+
+
+    def forward(self, x, y=None, interpolate=1, knn=False,contrast=True):
+        input_shape = x.shape[-2:]
+        # contract: features is a dict of tensors
+        features = self.backbone(x)
 
     def forward(self, x, y):
         g = self.conv_start(x)	
@@ -592,6 +607,7 @@ class DSMNet(nn.Module):
         
         y = self.conv_y(y)
         x = self.cv(x,y)
+        #print(x.shape)
         x1 = self.conv_refine(rem)
         x1 = F.interpolate(x1, [x1.size()[2]*4,x1.size()[3]*4], mode='bilinear', align_corners=False)
         x1 = self.bn_relu(x1)
