@@ -62,10 +62,10 @@ if cuda:
 
 if opt.resume:
     if os.path.isfile(opt.resume):
-        print("=> loading checkpoint '{}'".format(opt.resume))
-        checkpoint = torch.load(opt.resume)
-        model.load_state_dict(checkpoint['state_dict'], strict=False)
-       
+        checkpoint = torch.load(opt.resume, map_location=lambda storage, loc: storage.cuda())
+        msg=model.load_state_dict(checkpoint['state_dict'], strict=False)
+        print("=> loaded checkpoint '{}'".format(opt.resume))
+        print(msg)
     else:
         print("=> no checkpoint found at '{}'".format(opt.resume))
 
@@ -139,36 +139,16 @@ def test(leftname, rightname, savename):
         input2 = input2.cuda()
     with torch.no_grad():
 
-        temp = model(input1, input2)
-        temp = torch.norm(temp, p=2, dim=1)
-        temp = temp.cpu()
-        temp = temp.detach().numpy()
+        print(input1.shape, input2.shape)
+        prediction = model(input1, input2)
+        prediction = prediction.detach().cpu().numpy()
+        print(prediction.shape)
         if height <= opt.crop_height and width <= opt.crop_width:
-            temp = temp[0, opt.crop_height - height: opt.crop_height, opt.crop_width - width: opt.crop_width]
+            prediction = prediction[0, opt.crop_height - height: opt.crop_height, opt.crop_width - width: opt.crop_width]
         else:
-            temp = temp[0, :, :]
-        return temp
-        data = temp
-        m1 = np.min(data[:])
-        m2 = np.max(data[:])
-        m1 = 1
-        m2 = 8
-        print(m1, m2)
-        cmap = plt.cm.jet
-        norm = plt.Normalize(vmin=m1+(m2-m1)/8000., vmax=m2+(m2-m1)/600.)
-#                norm = plt.Normalize(vmin=m1, vmax=m2-(m2-m1)/3.)
-
-        image = cmap(norm(data))
-        skimage.io.imsave(savename, (image * 255).astype('uint8'))
-        return temp
-     
-    temp = prediction.cpu()
-    temp = temp.detach().numpy()
-    if height <= opt.crop_height and width <= opt.crop_width:
-        temp = temp[0, opt.crop_height - height: opt.crop_height, opt.crop_width - width: opt.crop_width]
-    else:
-        temp = temp[0, :, :]
-    skimage.io.imsave(savename, (temp * 256).astype('uint16'))
+            prediction = prediction[0, :, :]
+        return prediction
+    skimage.io.imsave(savename, (prediction * 256).astype('uint16'))
 
    
 if __name__ == "__main__":
@@ -176,22 +156,24 @@ if __name__ == "__main__":
     file_list = opt.test_list
     f = open(file_list, 'r')
     filelist = f.readlines()
+    if not os.path.exists(opt.save_path):
+        os.mkdir(opt.save_path)
     for index in range(0,len(filelist)):
         current_file = filelist[index]
         if opt.dataset == 'kitti2015':
             leftname = file_path + 'image_2/' + current_file[0: len(current_file) - 1]
             rightname = file_path + 'image_3/' + current_file[0: len(current_file) - 1]
-            savename = opt.save_path + current_file[:,-1]
+            savename = opt.save_path + current_file[:-1]
         if opt.dataset == 'kitti':
             leftname = file_path + 'colored_0/' + current_file[0: len(current_file) - 1]
             rightname = file_path + 'colored_1/' + current_file[0: len(current_file) - 1]
-            savename = opt.save_path + current_file[:,-1]
-        if opt.dataset == 'middlebury' 
+            savename = opt.save_path + current_file[:-1]
+        if opt.dataset == 'middlebury':
             current_file = current_file.strip().split(' ')
             leftname = file_path + 'rgb/' + current_file[0] #current_file[0: len(current_file) - 1]
             rightname = file_path + 'rgb/' + current_file[1] # right_file[0: len(current_file) - 1]
             savename = opt.save_path + str(index) + '.png'
-        if opt.dataset=='cityscapes:'
+        if opt.dataset=='cityscapes':
             leftname = file_path + 'left/' + current_file[0: len(current_file) - 1]
             rightname = file_path + 'right/' + current_file[0: len(current_file) - 16] + 'rightImg8bit.png'
             savename = opt.save_path + 'cityscape' + str(index) + '.png'
@@ -205,5 +187,6 @@ if __name__ == "__main__":
             rightname = file_path + current_file[0: len(current_file) - 14] + 'right/' + current_file[len(current_file) - 9:len(current_file) - 1]
             savename = opt.save_path + current_file[0: len(current_file) - 1]
             savename = opt.save_path + 'sceneflow' + str(index) + '.png'
-        test(leftname, rightname, savename)
+        prediction = test(leftname, rightname, savename)
+        skimage.io.imsave(savename, (prediction * 256).astype('uint16'))
         
