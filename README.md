@@ -54,9 +54,9 @@ Step 2: download and prepare the dataset
   
       -mv all training images (totallty 29 folders) into ${your dataset PATH}/frames_finalpass/TRAIN/
       -mv all corresponding disparity files (totallty 29 folders) into ${your dataset PATH}/disparity/TRAIN/
-      -make sure the following 29 folders are included in the "${your dataset PATH}/disparity/TRAIN/" and "${your dataset PATH}/frames_finalpass/TRAIN/":
+      -make sure the following 27 folders are included in the "${your dataset PATH}/disparity" "${your dataset PATH}/frames_cleanpass" and "${your dataset PATH}/frames_finalpass":
         
-        15mm_focallength	35mm_focallength		A			 a_rain_of_stones_x2		B				C
+        15mm_focallength	35mm_focallength		TRAIN			 a_rain_of_stones_x2						
         eating_camera2_x2	eating_naked_camera2_x2		eating_x2		 family_x2			flower_storm_augmented0_x2	flower_storm_augmented1_x2
         flower_storm_x2	funnyworld_augmented0_x2	funnyworld_augmented1_x2	funnyworld_camera2_augmented0_x2	funnyworld_camera2_augmented1_x2	funnyworld_camera2_x2
         funnyworld_x2	lonetree_augmented0_x2		lonetree_augmented1_x2		lonetree_difftex2_x2		  lonetree_difftex_x2		lonetree_winter_x2
@@ -64,12 +64,18 @@ Step 2: download and prepare the dataset
 	
     download and extract Carla, kitti and kitti2015 datasets.
         
-Step 3: revise parameter settings and run "train.sh" and "predict.sh" for training, finetuning and prediction/testing. Note that the “crop_width” and “crop_height” must be multiple of 48 (for "DSMNet") or 64 (for "DSMNet2x2"), "max_disp" must be multiple of 12 (for "DSMNet") or 16 (for "DSMNet2x2") (default: 192).
+Step 3: revise parameter settings and run "train.sh" and "predict.sh" for training, finetuning and prediction/testing. Note that the “crop_width” and “crop_height” must be multiple of 64 (for "DSMNet2x2"), "max_disp" must be multiple of 16 (for "DSMNet2x2") (default: 192).
 
 
 ## Pretrained models:
 
-Updating ...
+| Sceneflow (for initialize, only 10 epochs) | Synthetic (Sceneflow + Carla) | Mixed (Real + Synthetic)|
+|---|---|---|
+|[Google Drive](https://drive.google.com/file/d/1oXArd2uKhZQ4SjINlHyi4OZ1RjZkkoiU/view?usp=sharing)|[Google Drive](https://drive.google.com/file/d/1oIizu-ADuzKiANfpzZeNcp8FfObwAMQH/view?usp=sharing)|Coming soon|
+|[Baidu Yun (password: wv6g)](https://pan.baidu.com/s/1G4ccJSAmbF0gJbf76mjObw)|[Baidu Yun (password: 7qyk)](https://pan.baidu.com/s/1bcFmwQq-ssf6dvu_XD6MJw)|Coming soon|
+
+These pre-trained models perform a little better than those reported in the paper.
+If you want to compute disparity maps on your new stereo images, "Mixed (Real + Synthetic)" would be the best choice.
 
 
 
