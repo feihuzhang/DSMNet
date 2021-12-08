@@ -19,7 +19,7 @@ Carla Dataset: updating ...
 ## Building Requirements:
 
     gcc: >=5.3
-    GPU mem: >=6.5G (for testing);  >=11G (for training, >=22G is prefered)
+    GPU mem: >=5G (for testing);  >=11G (for training)
     pytorch: >=1.0
     cuda: >=9.2 (9.0 doesn’t support well for the new pytorch version and may have “pybind11 errors”.)
     tested platform/settings:
@@ -28,27 +28,15 @@ Carla Dataset: updating ...
       
 
 ## Install Pytorch:
-You can easily install pytorch (>=1.0) by "pip install" to run the code. See this https://github.com/feihuzhang/GANet/issues/24
+You can easily install pytorch (>=1.1) by "pip install" or anaconda.
 
-But, if you have trouble (lib conflicts) when compiling cuda libs,
-installing pytorch from source would help solve most of the errors (lib conflicts).
-
-Please refer to https://github.com/pytorch/pytorch about how to reinstall pytorch from source.
 
 ## How to Use?
 
 Step 1: compile the libs by "sh compile.sh"
 - Change the environmental variable ($PATH, $LD_LIBRARY_PATH etc.), if it's not set correctly in your system environment (e.g. .bashrc). Examples are included in "compile.sh".
-- If you met the BN error, try to replace the sync-bn with another version:
-    1) Install NVIDIA-Apex package https://github.com/NVIDIA/apex
-          $ git clone https://github.com/NVIDIA/apex
-          $ cd apex
-          $ pip install -v --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" ./
-    2) Revise the "GANet_deep.py":
-    add `import apex` 
-    change all `BatchNorm2d` and `BatchNorm3d` to `apex.parallel.SyncBatchNorm`
 
-Step 2: download and prepare the dataset
+Step 2: download and prepare the training dataset or your own testing set.
 
     download SceneFLow dataset: "FlyingThings3D", "Driving" and "Monkaa" (final pass and disparity files).
   
