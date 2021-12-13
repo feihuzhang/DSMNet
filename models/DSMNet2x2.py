@@ -591,11 +591,6 @@ class DSMNet(nn.Module):
                 m.eval()
 
 
-    def forward(self, x, y=None, interpolate=1, knn=False,contrast=True):
-        input_shape = x.shape[-2:]
-        # contract: features is a dict of tensors
-        features = self.backbone(x)
-
     def forward(self, x, y):
         g = self.conv_start(x)	
         x = self.feature(x)
