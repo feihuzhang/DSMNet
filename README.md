@@ -59,8 +59,8 @@ Step 3: revise parameter settings and run "train.sh" and "predict.sh" for traini
 
 | Sceneflow (for initialize, only 10 epochs) | Synthetic (Sceneflow + Carla) | Mixed (Real + Synthetic)|
 |---|---|---|
-|[Google Drive](https://drive.google.com/file/d/1oXArd2uKhZQ4SjINlHyi4OZ1RjZkkoiU/view?usp=sharing)|[Google Drive](https://drive.google.com/file/d/1oIizu-ADuzKiANfpzZeNcp8FfObwAMQH/view?usp=sharing)|Coming soon|
-|[Baidu Yun (password: wv6g)](https://pan.baidu.com/s/1G4ccJSAmbF0gJbf76mjObw)|[Baidu Yun (password: 7qyk)](https://pan.baidu.com/s/1bcFmwQq-ssf6dvu_XD6MJw)|Coming soon|
+|[Google Drive](https://drive.google.com/file/d/1oXArd2uKhZQ4SjINlHyi4OZ1RjZkkoiU/view?usp=sharing)|[Google Drive](https://drive.google.com/file/d/1oIizu-ADuzKiANfpzZeNcp8FfObwAMQH/view?usp=sharing)|[Google Drive](https://drive.google.com/file/d/1ay9qD4h1lORdpk0sR3bMImvf_aS1XhnP/view?usp=sharing)|
+|[Baidu Yun (password: wv6g)](https://pan.baidu.com/s/1G4ccJSAmbF0gJbf76mjObw)|[Baidu Yun (password: 7qyk)](https://pan.baidu.com/s/1bcFmwQq-ssf6dvu_XD6MJw)|[Baidu Yun (password: p6a3)](https://pan.baidu.com/s/19qF2XPI9GY7gcvjZIYy1pw)|
 
 These pre-trained models perform a little better than those reported in the paper.
 If you want to compute disparity maps on your new stereo images, "Mixed (Real + Synthetic)" would be the best choice.
